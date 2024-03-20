@@ -1,40 +1,29 @@
-from argparse import Namespace
+from argparse import Namespace, ArgumentParser
 
 
-from project.model import MultiLayerPerceptron
-from project.trainer import Trainer
-from project.datamodule import DataModule
+from project.experiment import Experiment
 
 
-def main():
+def main(cfg):
 
-    cfg = Namespace(
-    # Data module params
-    batch_size = 16,
-    num_workers = 2,
+    # Start a new training experiment
+    experiment = Experiment(cfg)
+    experiment.train()
 
-    # Training params
-    max_epochs = 3,
-    learning_rate = 0.1,
-
-    # Model params
-    num_hidden = 512
-    )
-
-
-    # Create model
-    model = MultiLayerPerceptron(
-    nin=28*28,                # Image size is 28x28
-    nhidden=cfg.num_hidden,   # Larger hidden layer
-    nout=10                   # 10 possible classes
-    )
-
-    # Create trainer & go go !
-    trainer = Trainer(cfg, model)
-    trainer.setup(DataModule())
-    trainer.fit()
 
 if __name__ == "__main__":
-    main()
-    
+
+    p = ArgumentParser()
+    p.add_argument("--name", "-n", type=str, default="basic", help="Experiment name")
+    p.add_argument("--ver", "-v", type=str, default="debug", help="Experiment version")
+
+    p.add_argument("--batch_size", "-bs", type=int, default=16, help="Batch size")
+    p.add_argument("--num_workers", "-nw", type=int, default=2, help="Number of Dataloader workers")
+    p.add_argument("--max_epochs", "-e", type=int, default=3, help="Number of epochs to train")
+    p.add_argument("--learning_rate", "-lr", type=float, default=0.1, help="Optimizer learning rate")
+    p.add_argument("--num_hidden", "-nh", type=int, default=512, help="Number of hidden units")
+
+    cfg = p.parse_args()
+    main(cfg)
+
 

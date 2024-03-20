@@ -19,4 +19,9 @@ class Statistics:
       result[k] = float(sum/count)
     return result
   
+  @staticmethod
+  def merge(s1, s2):
+    result = s1.get()
+    result.update(s2.get())
+    return result
   
