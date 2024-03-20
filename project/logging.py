@@ -1,3 +1,6 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.backends.backend_pdf as PDF
 
 
 class Log:
@@ -12,6 +15,23 @@ class Log:
 
     def on_epoch_complete(self, epoch, stats):
         pass
+
+
+class LogCompose(Log):
+    def __init__(self, list_log):
+        self.list_log = list_log
+
+    def on_training_start(self):
+        for l in self.list_log:
+            l.on_training_start()
+
+    def on_training_stop(self):
+        for l in self.list_log:
+            l.on_training_stop()
+
+    def on_epoch_complete(self, epoch, stats):
+        for l in self.list_log:
+            l.on_epoch_complete(epoch, stats)
 
 
 class CSVLog(Log):
@@ -49,7 +69,34 @@ class CSVLog(Log):
             self.file.write(line + "\n")
             self.file.flush()
             self.lines += 1
-            
+
+
+class ReportCompiler(Log):
+    def __init__(self, filepath, source_filepath):
+        self.filepath = filepath
+        self.source_filepath = source_filepath
+
+    def on_training_stop(self):
+        # Read all out CSV stats
+        data = pd.read_csv(self.source_filepath)
+        report = PDF.PdfPages(self.filepath)
+
+        # Iterate over all stats
+        for name, values in data.items():
+            if (name != "epoch"):
+                figure = self.get_line_plot(name, values)
+                figure.savefig(report, format="pdf")
+                plt.close()
+
+        report.close()
+
+
+    def get_line_plot(self, name, series):
+        figure = plt.figure()
+        plt.title(f"Graph of {name}")
+        plt.xlabel("Epoch")
+        plt.plot(series)
+        return figure
 
 
 

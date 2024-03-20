@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 
 from project.utils import Statistics
-
+from project.logging import LogCompose
 
 def decide_device():
   if (torch.cuda.is_available()): return "cuda"
@@ -31,9 +31,9 @@ class Trainer:
         self.loss = nn.CrossEntropyLoss()
 
 
-    def setup(self, datamodule, log):
+    def setup(self, datamodule, logs=[]):
         # Setup data
-        self.log = log
+        self.log = LogCompose(list_log=logs)
         self.datamodule = datamodule
         self.datamodule.setup(self.cfg)
 

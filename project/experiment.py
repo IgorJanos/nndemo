@@ -56,7 +56,13 @@ class Experiment:
         # Setup training
         self.trainer.setup(
             datamodule=self.datamodule,
-            log=L.CSVLog(self.experiment_path / "training.csv")
+            logs=[
+                L.CSVLog(self.experiment_path / "training.csv"),
+                L.ReportCompiler(
+                    filepath=self.experiment_path / "report.pdf",
+                    source_filepath=self.experiment_path / "training.csv"
+                )
+            ]
         )
         self.trainer.fit()
 
