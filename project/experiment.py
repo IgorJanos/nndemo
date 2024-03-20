@@ -2,6 +2,7 @@
 from pathlib import Path
 import yaml
 import torch
+from argparse import Namespace
 
 from torchsummary import summary
 from project.model import MultiLayerPerceptron
@@ -15,22 +16,67 @@ BASE_PATH=Path(".scratch/experiments")
 class Experiment:
     def __init__(
         self,
-        cfg            
+        cfg,
+        load_checkpoint_filepath=None
     ):
         self.cfg = cfg
         self.experiment_path = BASE_PATH / cfg.name / cfg.ver
-
-        # Print some info
-        print(f" > Created experiment : {cfg.name}/{cfg.ver}")
-        self.experiment_path.mkdir(parents=True, exist_ok=True)
-        self._save_config(cfg, self.experiment_path)
 
         # Create model & datamodule
         self.model = self._create_model(cfg)
         self.datamodule = DataModule()
 
+        # Load existing ? or start new ?
+        if (load_checkpoint_filepath is not None):
+
+            file_path = self.experiment_path / "checkpoints" / load_checkpoint_filepath
+            print(f" > Loading checkpoint: {file_path.as_posix()}")
+            checkpoint = torch.load(
+                file_path.as_posix(),
+                map_location=torch.device("cpu")
+            )
+            self.model.load_state_dict(checkpoint["model"])
+
+        else:
+            # Print some info
+            print(f" > Created experiment : {cfg.name}/{cfg.ver}")
+            self.experiment_path.mkdir(parents=True, exist_ok=True)
+            self._save_config(cfg, self.experiment_path)
+            checkpoint = None
+
+
         # Create trainer
         self.trainer = Trainer(cfg, self.model)
+        if (checkpoint is not None):
+            self.trainer.opt.load_state_dict(checkpoint["opt"])
+
+
+    @staticmethod
+    def from_folder(exp_name, version, checkpoint_epoch=None):
+        # Load config file first
+        experiment_path = BASE_PATH / str(exp_name) / str(version)
+        config_filepath = experiment_path / "config.yaml"
+        with config_filepath.open() as fp:
+            config_dict = yaml.safe_load(fp)
+            config_str = yaml.dump(config_dict)
+            print(" > Loaded configuration: ")
+            print("-------------------------")
+            print(config_str.strip())
+            print("\n")
+            cfg = Namespace(**config_dict)
+
+        # Load desired checkpoint
+        if (checkpoint_epoch is None):
+            checkpoint_filename = "last.pt"
+        else:
+            checkpoint_filename = f"checkpoint-{checkpoint_epoch:04d}.pt"
+
+        # Create experiment
+        experiment = Experiment(
+            cfg,
+            load_checkpoint_filepath=checkpoint_filename
+        )
+
 
     def _create_model(self, cfg):
         model = MultiLayerPerceptron(
