@@ -99,6 +99,21 @@ class ReportCompiler(Log):
         return figure
 
 
+class ModelCheckpointer(Log):
+    def __init__(self, experiment):
+        self.experiment = experiment
+
+    def on_training_stop(self):
+        self.experiment.save_checkpoint("last.pt")
+
+    def on_epoch_complete(self, epoch, stats):
+        self.experiment.save_checkpoint(f"checkpoint-{epoch:04d}.pt")
+
+
+
+
+
+
 
 
 

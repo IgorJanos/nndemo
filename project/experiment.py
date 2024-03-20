@@ -1,7 +1,9 @@
 
 from pathlib import Path
 import yaml
+import torch
 
+from torchsummary import summary
 from project.model import MultiLayerPerceptron
 from project.datamodule import DataModule
 from project.trainer import Trainer
@@ -36,6 +38,14 @@ class Experiment:
             nhidden=cfg.num_hidden,   # Larger hidden layer
             nout=10                   # 10 possible classes
         )
+
+        print(" Creating model: ")
+        summary(
+            model,
+            input_size=(1,28,28),
+            batch_size=1,
+            device="cpu"
+        )
         return model
 
     def _save_config(self, cfg, exp_path):
@@ -61,9 +71,25 @@ class Experiment:
                 L.ReportCompiler(
                     filepath=self.experiment_path / "report.pdf",
                     source_filepath=self.experiment_path / "training.csv"
-                )
+                ),
+                L.ModelCheckpointer(self)
             ]
         )
         self.trainer.fit()
 
 
+
+    def save_checkpoint(self, filename):
+
+        # Both - model and optimizer
+        checkpoint = {
+            "model": self.model.state_dict(),
+            "opt": self.trainer.opt.state_dict()
+        }
+
+        # Create checkpoints folder
+        file_path = self.experiment_path / "checkpoints" / filename
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        print(f"Saving checkpoint: {file_path.as_posix()}")
+        torch.save(checkpoint, file_path.as_posix())

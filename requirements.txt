@@ -45,6 +45,7 @@ six==1.16.0
 stack-data==0.6.3
 sympy==1.12
 torch==2.2.1
+torchsummary==1.5.1
 torchvision==0.17.1
 tornado==6.4
 tqdm==4.66.2
