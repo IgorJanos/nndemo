@@ -8,7 +8,7 @@
             "name": "Python Main File",
             "type": "debugpy",
             "request": "launch",
-            "program": "tools/main.py",
+            "program": "tools/train.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
         }
