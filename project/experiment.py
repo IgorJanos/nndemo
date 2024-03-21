@@ -76,6 +76,7 @@ class Experiment:
             cfg,
             load_checkpoint_filepath=checkpoint_filename
         )
+        return experiment
 
 
     def _create_model(self, cfg):
