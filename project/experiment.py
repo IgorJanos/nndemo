@@ -5,7 +5,7 @@ import torch
 from argparse import Namespace
 
 from torchsummary import summary
-from project.model import MultiLayerPerceptron
+from project.model import SimpleConvModel, PretrainedConvModel, VitModel
 from project.datamodule import DataModule
 from project.trainer import Trainer
 import project.logging as L
@@ -23,8 +23,8 @@ class Experiment:
         self.experiment_path = BASE_PATH / cfg.name / cfg.ver
 
         # Create model & datamodule
-        self.model = self._create_model(cfg)
         self.datamodule = DataModule()
+        self.model = self._create_model(cfg)
 
         # Load existing ? or start new ?
         if (load_checkpoint_filepath is not None):
@@ -80,16 +80,34 @@ class Experiment:
 
 
     def _create_model(self, cfg):
-        model = MultiLayerPerceptron(
-            nin=28*28,                # Image size is 28x28
-            nhidden=cfg.num_hidden,   # Larger hidden layer
-            nout=10                   # 10 possible classes
-        )
+
+        if (cfg.model_architecture == "simple"):
+            model = SimpleConvModel(
+                chin=3,
+                channels=16,
+                num_hidden=cfg.num_hidden,
+                num_classes=self.datamodule.dataset_train.num_classes
+            )
+        elif (cfg.model_architecture == "resnet"):
+            
+            model = PretrainedConvModel(
+                num_hidden=cfg.num_hidden,
+                num_classes=self.datamodule.dataset_train.num_classes
+            )
+
+        elif (cfg.model_architecture == "vit"):
+            
+            model = VitModel(
+                num_classes=self.datamodule.dataset_train.num_classes
+            )
+            
+        else:
+            raise Exception(f"Invalid architecture: {cfg.model_architecture}")
 
         print(" Creating model: ")
         summary(
             model,
-            input_size=(1,28,28),
+            input_size=(3,224,224),
             batch_size=1,
             device="cpu"
         )

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
+from torchmetrics import Accuracy
 
 from project.utils import Statistics
 from project.logging import LogCompose
@@ -29,6 +30,10 @@ class Trainer:
 
         # Create loss function
         self.loss = nn.CrossEntropyLoss()
+        self.acc = Accuracy(
+            "multiclass",
+            num_classes=model.num_classes
+        )
 
 
     def setup(self, datamodule, logs=[]):
@@ -71,6 +76,7 @@ class Trainer:
 
 
     def train_epoch(self, epoch, model, dataloader, stats):
+        model.train()
         with tqdm(dataloader, desc=f"Train: {epoch}") as progress:
             for x,y in progress:
 
@@ -88,11 +94,18 @@ class Trainer:
                 self.opt.step()
 
                 # Update statistics
+                acc = self.acc(
+                    torch.softmax(y_hat_logits, dim=1).cpu(),       # Predictions
+                    torch.argmax(y, dim=1).cpu()                    # Classes
+                )
+
                 stats.step("loss_train", l.item())
+                stats.step("acc_train", acc.item())
                 progress.set_postfix(stats.get())
        
        
-    def validate_epoch(self, epoch, model, dataloader, stats):        
+    def validate_epoch(self, epoch, model, dataloader, stats):    
+        model.eval()    
         with torch.no_grad():       # We don't need gradients in validation
             with tqdm(dataloader, desc=f"Val: {epoch}") as progress:
                 for x,y in progress:
@@ -105,5 +118,10 @@ class Trainer:
                     l = self.loss(y_hat_logits, y)
 
                     # Update statistics
+                    acc = self.acc(
+                        torch.softmax(y_hat_logits, dim=1).cpu(),       # Predictions
+                        torch.argmax(y, dim=1).cpu()                    # Classes
+                    )
                     stats.step("loss_val", l.item())
+                    stats.step("acc_val", acc.item())
                     progress.set_postfix(stats.get())
